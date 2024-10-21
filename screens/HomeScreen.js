@@ -1,32 +1,47 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react'
-import { auth } from '../firebaseConfig'
+import { ActivityIndicator, TouchableOpacity, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native'
+import React, { useState } from 'react'
 import { useNavigation } from '@react-navigation/native'
+import { searchBooks } from '../components/searchBooks'
 
 
 const HomeScreen = () => {
 
-    const navigation = useNavigation()
+    const [keyword, setKeyword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const navigation = useNavigation();
 
-    const handleSignOut = () => {
-        auth
-            .signOut()
-            .then(() => {
-                navigation.replace("Login")
+    const handleFetch = () => {
+        setLoading(true);
+        searchBooks(keyword)
+            .then(data => {
+                navigation.navigate("SearchResult", { results: data.items });
             })
-            .catch(error => alert(error.message))
-    }
+            .catch(err => console.error(err))
+            .finally(() => {
+                setKeyword("");
+                setLoading(false);
+            });
+    };
 
     return (
         <View style={styles.container}>
-            {/* "?" to check if currentUser is undefined, if it is then just leave it as undefined to avoid crashing the app */}
-            <Text>Email: {auth.currentUser?.email}</Text>
+            <TextInput
+                placeholder='Write a book name here...'
+                value={keyword}
+                onChangeText={text => setKeyword(text)}
+            />
             <TouchableOpacity
-                onPress={handleSignOut}
-                style={styles.button}
-            >
-                <Text style={styles.buttonText}>Sign out</Text>
+                style={styles.buttonText}
+                disabled={loading}
+                onPress={handleFetch}
+                >
+                <Text style={styles.buttonText}>Search</Text>
             </TouchableOpacity>
+            <ActivityIndicator
+                size='large'
+                animating={loading}
+            />
+            <StatusBar style='auto' />
         </View>
     )
 }
@@ -48,7 +63,7 @@ const styles = StyleSheet.create({
         marginTop: 40,
     },
     buttonText: {
-        color: 'white',
+        color: 'lightblue',
         fontWeight: '700',
         fontSize: 16,
     },

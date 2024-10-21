@@ -4,18 +4,20 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './screens/LoginScreen';
 import TabNavigator from './TabNavigator';
+import SearchResultScreen from './screens/SearchResultScreen';
 
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen options={{ headerShown: false }} name="Login" component={LoginScreen} />
-        <Stack.Screen options={{ headerShown: false }} name="TabNav" component={TabNavigator} />
-      </Stack.Navigator>
-    </NavigationContainer>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen options={{ headerShown: false }} name="Login" component={LoginScreen} />
+          <Stack.Screen options={{ headerShown: false }} name="TabNav" component={TabNavigator} />
+          <Stack.Screen options={{ headerShown: false }} name="SearchResult" component={SearchResultScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
   );
 }
 
