@@ -6,7 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import { useNavigation } from '@react-navigation/native'
 
 const SearchResultScreen = ({ route }) => {
-  const { results = [] } = route.params; // default to to an empty array if undefined
+  const { results = [] } = route.params; // default to to an empty array in case results are undefined
   const navigation = useNavigation();
 
   return (
@@ -23,7 +23,7 @@ const SearchResultScreen = ({ route }) => {
         <FlatList
           data={results}
           keyExtractor={(item) => item.id} // add unique id for all items on the flatlist
-          renderItem={renderBooks} // call renderBooks
+          renderItem={({ item }) => renderBooks({ item, navigation })} // call renderBooks, destructure item and pass item and navigation to the function.
           ListEmptyComponent={<Text>No results found</Text>}  // handle empty data
         />
         <StatusBar style='auto' />

@@ -1,6 +1,6 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export const renderBooks = ({ item }) => {
+export const renderBooks = ({ item, navigation }) => {
 
   // If there is no description available print "No description available."
   let description = item.volumeInfo.description || "No description available.";
@@ -12,7 +12,9 @@ export const renderBooks = ({ item }) => {
   }
 
   return (
-    <TouchableOpacity >
+    <TouchableOpacity
+      onPress={() => navigation.navigate("BookDetails")}
+    >
       <View style={styles.itemContainer}>
 
         {/* book cover picture */}
@@ -29,6 +31,8 @@ export const renderBooks = ({ item }) => {
           <Text style={styles.authors}>{item.volumeInfo.authors?.join(', ')} · {item.volumeInfo.publishedDate.substring(0, 4)}</Text>
 
           <Text style={styles.description}>{description}</Text>
+
+          <Text style={styles.description}>{item.id}</Text>
 
         </View>
       </View>
