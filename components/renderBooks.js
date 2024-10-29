@@ -2,13 +2,16 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export const renderBooks = ({ item, navigation }) => {
 
-  // If there is no description available print "No description available."
-  let description = item.volumeInfo.description || "No description available.";
+  // make optional renders in cases where data is not available
+  const description = item.volumeInfo?.description || "No description available."; // if description not available render "No description available."
+  const authors = item.volumeInfo?.authors?.join(', ') || "Unknown Author"; // if authors not available render "Unknown Author"
+  const publishedDate = item.volumeInfo?.publishedDate || "Unknown Date"; // if publish date not available render "Unknown Date"
+  const title = item.volumeInfo?.title || "Untitled"; // if title not available render "Untitled"
 
-  // check if the description length is over 180 characters,
-  // if so only render 180 characters and add "..." to the end.
-  if (description.length > 180) {
-    description = description.substring(0, 180) + '...'
+  // create a new variable for the shortened description that will add '...' tot the end if the description is longer than 180 letters
+  let shortDescription = description
+  if (shortDescription.length > 180) {
+    shortDescription = shortDescription.substring(0, 180) + '...';
   }
 
   return (
@@ -16,7 +19,6 @@ export const renderBooks = ({ item, navigation }) => {
       onPress={() => navigation.navigate("BookDetails")}
     >
       <View style={styles.itemContainer}>
-
         {/* book cover picture */}
         <Image
           style={styles.thumbnail}
@@ -25,21 +27,26 @@ export const renderBooks = ({ item, navigation }) => {
           }}
         />
         <View style={styles.textContainer}>
-          <Text style={styles.title}>{item.volumeInfo.title}</Text>
+          <Text style={styles.title}>{title}</Text>
+          {/* authors and published date */}
+          <Text style={styles.authors}>{authors} · {publishedDate.substring(0, 4)}</Text>
+          {/* render the shortened description */}
+          <Text style={styles.description}>{shortDescription}</Text>
 
-          {/* "?.join(', ')" applies ", " in between of the authors in case there is more than 1 author */}
-          <Text style={styles.authors}>{item.volumeInfo.authors?.join(', ')} · {item.volumeInfo.publishedDate.substring(0, 4)}</Text>
 
-          <Text style={styles.description}>{description}</Text>
 
+
+          {/* FOR DEV PURPOSES REMEMBER TO DELETE IN FINAL PRODUCT */}
           <Text style={styles.description}>{item.id}</Text>
+          {/* FOR DEV PURPOSES REMEMBER TO DELETE IN FINAL PRODUCT */}
+
+
 
         </View>
       </View>
     </TouchableOpacity>
   );
 };
-
 
 const styles = StyleSheet.create({
   textContainer: {
