@@ -16,7 +16,7 @@ export const renderBooks = ({ item, navigation }) => {
 
   return (
     <TouchableOpacity
-      onPress={() => navigation.navigate("BookDetails")}
+      onPress={() => navigation.navigate("BookDetails", { item })}
     >
       <View style={styles.itemContainer}>
         {/* book cover picture */}
