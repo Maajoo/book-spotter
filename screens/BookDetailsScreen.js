@@ -1,14 +1,20 @@
-import { Image, Linking, ScrollView, StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import { Button, Image, Linking, ScrollView, StyleSheet, Text } from 'react-native'
+import React, { useEffect, useState } from 'react'
 import { useNavigation } from '@react-navigation/native';
 import { TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons'
+import { auth, db } from '../firebaseConfig';
+import { doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 
 const BookDetailsScreen = ({ route }) => {
 
   const { item } = route.params;
   const navigation = useNavigation();
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [user, setUser] = useState(null); // state for the user that is logged in
+
 
   const description = item.volumeInfo?.description || "No description available."; // if description not available render "No description available."
   const authors = item.volumeInfo?.authors?.join(', ') || "Unknown Author"; // if authors not available render "Unknown Author"
@@ -22,6 +28,50 @@ const BookDetailsScreen = ({ route }) => {
   const retailPrice = item.saleInfo.retailPrice?.amount || "Unknown Retail Price"
   const buyLink = item.saleInfo?.buyLink || "Unknown buyLink"
   const saleability = item.saleInfo?.saleability || "Saleability not available"
+  const id = item?.id || "book id not available"
+  const uid = user?.uid || "not logged in"
+
+  // setUser to the user that is logged in
+  useEffect(() => onAuthStateChanged(auth, setUser), []);
+
+  // check if the book is in favorites when user opens bookdetails
+  useEffect(() => {
+    if (user) {
+      checkIfFavorite();
+    }
+  }, [user, id]);
+
+
+  // function to check if the book is already in favourites collection
+  const checkIfFavorite = async () => {
+    const docRef = doc(db, "favourites", `${uid}_${id}`);
+    const docSnapshot = await getDoc(docRef);
+
+    setIsFavorite(docSnapshot.exists());
+  };
+
+
+  const toggleFavorite = async () => {
+    if (!user) return;
+
+    try {
+      const docRef = doc(db, "favourites", `${uid}_${id}`);
+      const docSnapshot = await getDoc(docRef);
+
+      if (docSnapshot.exists()) {
+        await deleteDoc(docRef);
+        setIsFavorite(false);
+      } else {
+        await setDoc(docRef, { uid: user.uid, bookId: id, timestamp: Date.now() });
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+    }
+  };
+
+  const favoriteButtonText = isFavorite ? "Remove from Favorites" : "Add to Favorites";
+
 
   return (
     <ScrollView style={styles.container}>
@@ -30,6 +80,9 @@ const BookDetailsScreen = ({ route }) => {
       >
         <Ionicons name={'caret-back-circle-outline'} size={24} color="black" />
       </TouchableOpacity>
+
+      <Button title={favoriteButtonText} onPress={toggleFavorite} />
+
       <Text>{title}</Text>
       <Image
         style={styles.thumbnail}
@@ -45,7 +98,7 @@ const BookDetailsScreen = ({ route }) => {
       <Text>{pageCount}</Text>
       <Text>{categories}</Text>
 
-      {/* Conditional render that checks if the book is for sale */}
+      {/* conditional render that checks if the book is for sale */}
       {saleability === "FOR_SALE" ? (
         <>
           <Text>{listPrice}</Text>
