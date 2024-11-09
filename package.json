@@ -15,6 +15,7 @@
     "@react-navigation/native-stack": "^6.11.0",
     "book-spotter": "file:",
     "expo": "~51.0.28",
+    "expo-mail-composer": "~13.0.1",
     "expo-status-bar": "~1.12.1",
     "firebase": "^10.14.1",
     "react": "18.2.0",
