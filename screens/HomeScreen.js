@@ -146,10 +146,30 @@ const HomeScreen = () => {
                     <FlatList
                         data={recent}
                         keyExtractor={(item) => item.id} // add unique id for all items on the flatlist
-                        renderItem={({ item }) => (<Text>{item.keyword}</Text>)} // render "item.keyword"
+                        renderItem={({ item }) => (
+
+                            <TouchableOpacity
+                                onPress={async () => {
+                                    setLoading(true); // show the loading indicator
+                                    try {
+                                        // call searchBooks function with the clicked keyword
+                                        const data = await searchBooks(item.keyword);
+
+                                        // Navigate to SearchResultScreen with the search results
+                                        navigation.navigate("SearchResult", { results: data.items });
+                                    } catch (err) {
+                                        console.error(err);
+                                    } finally {
+                                        setLoading(false); // hide the loading indicator after search
+                                    }
+                                }}
+                            >
+                                {/* render search history */}
+                                <Text>{item.keyword}</Text>
+                            </TouchableOpacity>)}
                     />
                 </View>
-            </TouchableWithoutFeedback>
+            </TouchableWithoutFeedback >
         </>
     )
 }
