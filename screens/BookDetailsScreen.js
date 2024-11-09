@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import { auth, db } from '../firebaseConfig';
 import { doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { sendBookRecommendation } from '../components/sendEmail';
 
 
 const BookDetailsScreen = ({ route }) => {
@@ -72,6 +73,15 @@ const BookDetailsScreen = ({ route }) => {
 
   const favoriteButtonText = isFavorite ? "Remove from Favorites" : "Add to Favorites";
 
+  // Function to handle email sending
+  const handleSendEmail = () => {
+    const bookDetails = {
+      title,
+      authors,
+      description,
+    };
+    sendBookRecommendation(bookDetails);
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -81,7 +91,10 @@ const BookDetailsScreen = ({ route }) => {
         <Ionicons name={'caret-back-circle-outline'} size={24} color="black" />
       </TouchableOpacity>
 
+      <Button title="Go to Home" onPress={() => navigation.navigate('Home')} />
+
       <Button title={favoriteButtonText} onPress={toggleFavorite} />
+      <Button title="Recommend this Book" onPress={handleSendEmail} />
 
       <Text>{title}</Text>
       <Image

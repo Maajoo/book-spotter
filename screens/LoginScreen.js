@@ -24,19 +24,17 @@ const LoginScreen = () => {
     const handleSignUp = () => {
         createUserWithEmailAndPassword(auth, email, password)
             .then(userCredentials => {
-                const user = userCredentials.user;
-                console.log('Registered: ' + user.email);
+                console.log('Registered: ' + userCredentials.user.email);
             })
-            .catch(error => alert(error.message))  // Fixed the typo from 'cathc' to 'catch'
+            .catch(error => alert(error.message))
     }
 
     const handleLogin = () => {
         signInWithEmailAndPassword(auth, email, password)
             .then(userCredentials => {
-                const user = userCredentials.user;
-                console.log('Logged in with: ' + user.email);
+                console.log('Logged in with: ' + userCredentials.user.email);
             })
-            .catch(error => alert(error.message))  // Fixed the typo from 'cathc' to 'catch'
+            .catch(error => alert(error.message))
     }
 
     return (
