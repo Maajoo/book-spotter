@@ -7,6 +7,7 @@ import { auth, db } from '../firebaseConfig';
 import { doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { sendBookRecommendation } from '../components/sendEmail';
+import { toggleFavorite } from '../components/toggleFavourite';
 
 
 const BookDetailsScreen = ({ route }) => {
@@ -51,21 +52,10 @@ const BookDetailsScreen = ({ route }) => {
     setIsFavorite(docSnapshot.exists());
   };
 
-
-  const toggleFavorite = async () => {
-    if (!user) return;
-
+  const handleToggleFavorite = async () => {
     try {
-      const docRef = doc(db, "favourites", `${uid}_${id}`);
-      const docSnapshot = await getDoc(docRef);
-
-      if (docSnapshot.exists()) {
-        await deleteDoc(docRef);
-        setIsFavorite(false);
-      } else {
-        await setDoc(docRef, { uid: user.uid, bookId: id, bookTitle: title, timestamp: Date.now() });
-        setIsFavorite(true);
-      }
+      const updatedFavoriteStatus = await toggleFavorite(db, user, id, title);
+      setIsFavorite(updatedFavoriteStatus);
     } catch (error) {
       console.error("Error toggling favorite:", error);
     }
@@ -93,7 +83,7 @@ const BookDetailsScreen = ({ route }) => {
 
       <Button title="Go to Home" onPress={() => navigation.navigate('Home')} />
 
-      <Button title={favoriteButtonText} onPress={toggleFavorite} />
+      <Button title={favoriteButtonText} onPress={handleToggleFavorite} />
       <Button title="Recommend this Book" onPress={handleSendEmail} />
 
       <Text>{title}</Text>

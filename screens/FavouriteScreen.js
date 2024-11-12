@@ -97,8 +97,8 @@ const FavouriteScreen = () => {
             data={favourites}
             renderItem={renderFavoriteItem}
             keyExtractor={(item, index) => item.bookId + index.toString()}
-            numColumns={2}  // Set the number of columns
-            columnWrapperStyle={styles.row}  // Apply styling to the row
+            numColumns={2}
+            columnWrapperStyle={styles.row}
           />
         ) : (
           <Text>No favourites found.</Text>
