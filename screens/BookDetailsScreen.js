@@ -8,6 +8,7 @@ import { doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { sendBookRecommendation } from '../components/sendEmail';
 import { toggleFavorite } from '../components/toggleFavourite';
+import { toggleRead } from '../components/toggleRead';
 
 
 const BookDetailsScreen = ({ route }) => {
@@ -15,6 +16,7 @@ const BookDetailsScreen = ({ route }) => {
   const { item } = route.params;
   const navigation = useNavigation();
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isRead, setIsRead] = useState(false);
   const [user, setUser] = useState(null); // state for the user that is logged in
 
 
@@ -63,6 +65,41 @@ const BookDetailsScreen = ({ route }) => {
 
   const favouriteButtonText = isFavorite ? "Remove from Favorites" : "Add to Favorites";
 
+
+
+
+
+// check if the book is in favourites when user opens bookdetails
+useEffect(() => {
+  if (user) {
+    checkIfRead();
+  }
+}, [user, id]);
+
+
+// function to check if the book is already in favourites collection
+const checkIfRead = async () => {
+  const docRef = doc(db, "markedasread", `${uid}_${id}`);
+  const docSnapshot = await getDoc(docRef);
+
+  setIsRead(docSnapshot.exists());
+};
+
+const handleToggleRead = async () => {
+  try {
+    const updatedReadStatus = await toggleRead(db, user, id, title);
+    setIsRead(updatedReadStatus);
+  } catch (error) {
+    console.error("Error toggling read status:", error);
+  }
+};
+
+const readButtonText = isRead ? "Mark as unread" : "Mark as read";
+
+
+
+
+
   // Function to handle email sending
   const handleSendEmail = () => {
     const bookDetails = {
@@ -84,6 +121,7 @@ const BookDetailsScreen = ({ route }) => {
       <Button title="Go to Home" onPress={() => navigation.navigate('Home')} />
 
       <Button title={favouriteButtonText} onPress={handleToggleFavorite} />
+      <Button title={readButtonText} onPress={handleToggleRead} />
       <Button title="Recommend this Book" onPress={handleSendEmail} />
 
       <Text>{title}</Text>
