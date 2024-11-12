@@ -63,7 +63,7 @@ const BookDetailsScreen = ({ route }) => {
         await deleteDoc(docRef);
         setIsFavorite(false);
       } else {
-        await setDoc(docRef, { uid: user.uid, bookId: id, timestamp: Date.now() });
+        await setDoc(docRef, { uid: user.uid, bookId: id, bookTitle: title, timestamp: Date.now() });
         setIsFavorite(true);
       }
     } catch (error) {
