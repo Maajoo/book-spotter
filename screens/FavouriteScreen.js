@@ -1,13 +1,17 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { fetchBooks } from '../components/fetchBooks';
 
 const FavouriteScreen = () => {
   const [user, setUser] = useState(null);
   const [favourites, setFavourites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -19,8 +23,11 @@ const FavouriteScreen = () => {
 
         // listener so the favourites will update correctly
         const unsubscribeSnapshot = onSnapshot(q, (querySnapshot) => {
-          const favs = querySnapshot.docs.map((doc) => doc.data().bookId);
-          setFavourites(favs);
+          const favoritesData = querySnapshot.docs.map((doc) => ({
+            bookId: doc.data().bookId,
+            bookTitle: doc.data().bookTitle,
+          }));
+          setFavourites(favoritesData);
           setLoading(false);
         }, (error) => {
           console.error("Error fetching favourites: ", error);
@@ -41,31 +48,64 @@ const FavouriteScreen = () => {
     return () => unsubscribeAuth();
   }, []);
 
-  //function to render the favourite id (WILL BE CHANGED TO COVER PICTURE AND BOOK NAME IN THE FUTURE)
-  const renderFavoriteItem = (bookId, index) => (
-    <View key={index} style={styles.favoriteItem}>
-      <Text>Book ID: {bookId}</Text>
-    </View>
+  //function to render the favourite id
+  const renderFavoriteItem = ({ item }) => (
+    <TouchableOpacity style={styles.favoriteItem}
+      onPress={() => navigateToBookDetails(item.bookId)}
+    >
+      <Image
+        style={styles.thumbnail}
+        source={{
+          uri: `https://books.google.com/books/content?id=${item.bookId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`,
+        }}
+      />
+      <Text>{item.bookTitle}</Text>
+      <Text>{item.bookId}</Text>
+    </TouchableOpacity>
   );
 
+  const navigateToBookDetails = async (bookId) => {
+    try {
+      // Call fetchBooks with bookId to fetch detailed information
+      const bookData = await fetchBooks(null, bookId);
+  
+      // Structure item to include volumeInfo and saleInfo
+      navigation.navigate("BookDetails", {
+        item: {
+          id: bookId,
+          volumeInfo: bookData.volumeInfo || {},
+          saleInfo: bookData.saleInfo || {},
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching book details: ", error);
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.favouritesContainer}>
       <Text style={styles.title}>Favourite Books</Text>
 
       {/* if loading == true display ActivityIndicator else if favourites length > 0
       if true render favourites else render "No favourites found." */}
+
       {loading ? (
         <ActivityIndicator />
       ) : (
         favourites.length ? (
-          favourites.map(renderFavoriteItem)
+          <FlatList
+            data={favourites}
+            renderItem={renderFavoriteItem}
+            keyExtractor={(item, index) => item.bookId + index.toString()}
+            numColumns={2}  // Set the number of columns
+            columnWrapperStyle={styles.row}  // Apply styling to the row
+          />
         ) : (
           <Text>No favourites found.</Text>
         )
       )}
 
-    </ScrollView>
+    </View>
   );
 };
 
@@ -77,14 +117,27 @@ const styles = StyleSheet.create({
     marginTop: 100,
     paddingHorizontal: 20,
   },
+  favouritesContainer: {
+    marginTop: 100,
+    marginBottom: 100,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 20,
   },
   favoriteItem: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 5,
     padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+  },
+  thumbnail: {
+    width: 100,
+    height: 150,
+  },
+  row: {
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
 });
