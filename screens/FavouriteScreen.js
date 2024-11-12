@@ -1,4 +1,4 @@
-import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Button, FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -6,12 +6,15 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { fetchBooks } from '../components/fetchBooks';
+import { toggleFavorite } from '../components/toggleFavourite';
 
 const FavouriteScreen = () => {
   const [user, setUser] = useState(null);
   const [favourites, setFavourites] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
+  const [isFavorite, setIsFavorite] = useState(true);
+
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -23,11 +26,11 @@ const FavouriteScreen = () => {
 
         // listener so the favourites will update correctly
         const unsubscribeSnapshot = onSnapshot(q, (querySnapshot) => {
-          const favoritesData = querySnapshot.docs.map((doc) => ({
+          const favouritesData = querySnapshot.docs.map((doc) => ({
             bookId: doc.data().bookId,
             bookTitle: doc.data().bookTitle,
           }));
-          setFavourites(favoritesData);
+          setFavourites(favouritesData);
           setLoading(false);
         }, (error) => {
           console.error("Error fetching favourites: ", error);
@@ -43,14 +46,27 @@ const FavouriteScreen = () => {
       }
     });
 
-
     // empty auth listener
     return () => unsubscribeAuth();
   }, []);
 
+
+
+
+
+
+  const handleToggleFavorite = async (bookId, bookTitle) => {
+    try {
+      const updatedFavoriteStatus = await toggleFavorite(db, user, bookId, bookTitle);
+    } catch (error) {
+      console.error("Error toggling favourite:", error);
+    }
+  };
+
+
   //function to render the favourite id
   const renderFavoriteItem = ({ item }) => (
-    <TouchableOpacity style={styles.favoriteItem}
+    <TouchableOpacity style={styles.favouriteItem}
       onPress={() => navigateToBookDetails(item.bookId)}
     >
       <Image
@@ -61,6 +77,10 @@ const FavouriteScreen = () => {
       />
       <Text>{item.bookTitle}</Text>
       <Text>{item.bookId}</Text>
+      <Button
+        title="Remove from Favorites"
+        onPress={() => handleToggleFavorite(item.bookId, item.bookTitle)}
+      />
     </TouchableOpacity>
   );
 
@@ -68,7 +88,7 @@ const FavouriteScreen = () => {
     try {
       // Call fetchBooks with bookId to fetch detailed information
       const bookData = await fetchBooks(null, bookId);
-  
+
       // Structure item to include volumeInfo and saleInfo
       navigation.navigate("BookDetails", {
         item: {
@@ -126,7 +146,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
   },
-  favoriteItem: {
+  favouriteItem: {
     flex: 1,
     alignItems: 'center',
     marginHorizontal: 5,

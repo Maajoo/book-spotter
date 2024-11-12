@@ -36,7 +36,7 @@ const BookDetailsScreen = ({ route }) => {
   // setUser to the user that is logged in
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
-  // check if the book is in favorites when user opens bookdetails
+  // check if the book is in favourites when user opens bookdetails
   useEffect(() => {
     if (user) {
       checkIfFavorite();
@@ -57,11 +57,11 @@ const BookDetailsScreen = ({ route }) => {
       const updatedFavoriteStatus = await toggleFavorite(db, user, id, title);
       setIsFavorite(updatedFavoriteStatus);
     } catch (error) {
-      console.error("Error toggling favorite:", error);
+      console.error("Error toggling favourite:", error);
     }
   };
 
-  const favoriteButtonText = isFavorite ? "Remove from Favorites" : "Add to Favorites";
+  const favouriteButtonText = isFavorite ? "Remove from Favorites" : "Add to Favorites";
 
   // Function to handle email sending
   const handleSendEmail = () => {
@@ -83,7 +83,7 @@ const BookDetailsScreen = ({ route }) => {
 
       <Button title="Go to Home" onPress={() => navigation.navigate('Home')} />
 
-      <Button title={favoriteButtonText} onPress={handleToggleFavorite} />
+      <Button title={favouriteButtonText} onPress={handleToggleFavorite} />
       <Button title="Recommend this Book" onPress={handleSendEmail} />
 
       <Text>{title}</Text>

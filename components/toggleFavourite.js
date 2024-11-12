@@ -11,13 +11,13 @@ export const toggleFavorite = async (db, user, id, title) => {
 
     if (docSnapshot.exists()) {
       await deleteDoc(docRef);
-      return false; // Indicates item was removed from favorites
+      return false;
     } else {
       await setDoc(docRef, { uid, bookId: id, bookTitle: title, timestamp: Date.now() });
-      return true; // Indicates item was added to favorites
+      return true;
     }
   } catch (error) {
-    console.error("Error toggling favorite:", error);
+    console.error("Error toggling favourite:", error);
     throw error;
   }
 };
