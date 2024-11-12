@@ -1,79 +1,74 @@
-import { KeyboardAvoidingView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../firebaseConfig'
-import { useNavigation } from '@react-navigation/native'
+import { KeyboardAvoidingView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebaseConfig';
+import { useNavigation } from '@react-navigation/native';
 
-const LoginScreen = () => {
+const RegisterScreen = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('');
+    const navigation = useNavigation();
 
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
+    const handleSignUp = async () => {
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
 
-    const navigation = useNavigation()
+            // store the username information in 'users' firestore collection
+            await setDoc(doc(db, 'users', user.uid), {
+                username: username,
+                email: user.email
+            });
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, user => {
-            if (user) {
-                navigation.replace("TabNav")
-            }
-        })
-        return unsubscribe
-    }, [])
-
-    const handleLogin = () => {
-        signInWithEmailAndPassword(auth, email, password)
-            .then(userCredentials => {
-                console.log('Logged in with: ' + userCredentials.user.email);
-            })
-            .catch(error => alert(error.message))
-    }
+            console.log('User registered with:', user.email);
+            navigation.replace("TabNav");
+        } catch (error) {
+            alert(error.message);
+        }
+    };
 
     return (
-        //avoid blocking the input fields with keyboard
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior="padding"
-        >
+        <KeyboardAvoidingView style={styles.container} behavior="padding">
             <View style={styles.inputContainer}>
+                <TextInput
+                    placeholder="Username"
+                    value={username}
+                    onChangeText={text => setUsername(text)}
+                    style={styles.input}
+                />
                 <TextInput
                     placeholder="Email"
                     value={email}
                     onChangeText={text => setEmail(text)}
                     style={styles.input}
                 />
-
                 <TextInput
                     placeholder="Password"
                     value={password}
                     onChangeText={text => setPassword(text)}
                     style={styles.input}
-                    secureTextEntry // makes it so password will be shown as "•" when written
+                    secureTextEntry
                 />
             </View>
 
             <View style={styles.buttonContainer}>
-                {/* LOGIN */}
-                <TouchableOpacity
-                    onPress={handleLogin}
-                    style={styles.button}
-                >
-                    <Text style={styles.buttonText}>Login</Text>
+                <TouchableOpacity onPress={handleSignUp} style={styles.button}>
+                    <Text style={styles.buttonText}>Register</Text>
                 </TouchableOpacity>
-
-                {/* REGISTER */}
                 <TouchableOpacity
-                    onPress={() => navigation.navigate("Register")}
+                    onPress={() => navigation.navigate("Login")}
                     style={[styles.button, styles.buttonOutline]} //inherit the styles from "button" and "buttonOutline" with []
                 >
-                    <Text style={styles.buttonOutlineText}>Register</Text>
+                    <Text style={styles.buttonOutlineText}>Cancel</Text>
                 </TouchableOpacity>
             </View>
-
         </KeyboardAvoidingView>
-    )
-}
+    );
+};
 
-export default LoginScreen
+export default RegisterScreen;
 
 const styles = StyleSheet.create({
     container: {
@@ -120,4 +115,4 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         fontSize: 16,
     },
-})
+});
