@@ -7,13 +7,13 @@ import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { fetchBooks } from '../components/fetchBooks';
 import { toggleFavorite } from '../components/toggleFavourite';
+import { sendBookRecommendation } from '../components/sendEmail';
 
 const FavouriteScreen = () => {
   const [user, setUser] = useState(null);
   const [favourites, setFavourites] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
-  const [isFavorite, setIsFavorite] = useState(true);
 
 
   useEffect(() => {
@@ -52,7 +52,28 @@ const FavouriteScreen = () => {
 
 
 
+  // function to handle email sending
+  const handleSendEmail = async (book) => {
+    let bookDetails = {
+      title: book.bookTitle,
+      authors: book.authors,
+      description: book.description,
+    };
 
+    // fetch missing details to form the email
+    if (!bookDetails.authors || !bookDetails.description) {
+      try {
+        const bookData = await fetchBooks(null, book.bookId);
+        bookDetails.authors = bookData.volumeInfo.authors.join(", ") || "Unknown Author";
+        bookDetails.description = bookData.volumeInfo.description || "No description available.";
+      } catch (error) {
+        console.error("Error fetching additional book details:", error);
+        return;
+      }
+    }
+
+    sendBookRecommendation(bookDetails);
+  };
 
 
   const handleToggleFavorite = async (bookId, bookTitle) => {
@@ -80,6 +101,10 @@ const FavouriteScreen = () => {
       <Button
         title="Remove from Favorites"
         onPress={() => handleToggleFavorite(item.bookId, item.bookTitle)}
+      />
+      <Button
+        title="Recommend this Book"
+        onPress={() => handleSendEmail(item)}
       />
     </TouchableOpacity>
   );
