@@ -1,7 +1,7 @@
 import { ActivityIndicator, TouchableOpacity, StatusBar, StyleSheet, Text, TextInput, View, FlatList, Keyboard, TouchableWithoutFeedback } from 'react-native'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
-import { searchBooks } from '../components/searchBooks'
+import { fetchBooks } from '../components/fetchBooks'
 import { getDocs, collection, addDoc, query, where, deleteDoc, doc } from "firebase/firestore";
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged } from "firebase/auth";
@@ -81,7 +81,7 @@ const HomeScreen = () => {
         }, [user])
     );
 
-    // function to add search to "recentSearches" database and call "searchBooks" function when the "Search" TouchableOpacity is pressed
+    // function to add search to "recentSearches" database and call "fetchBooks" function when the "Search" TouchableOpacity is pressed
     const handleSearch = async () => {
 
         //check if user is logged in
@@ -106,8 +106,8 @@ const HomeScreen = () => {
             }
         }
 
-        // call searchBooks function
-        searchBooks(keyword)
+        // call fetchBooks function
+        fetchBooks(keyword)
 
             //navigate to SearchResultScreen
             .then(data => {
@@ -152,8 +152,8 @@ const HomeScreen = () => {
                                 onPress={async () => {
                                     setLoading(true); // show the loading indicator
                                     try {
-                                        // call searchBooks function with the clicked keyword
-                                        const data = await searchBooks(item.keyword);
+                                        // call fetchBooks function with the clicked keyword
+                                        const data = await fetchBooks(item.keyword);
 
                                         // Navigate to SearchResultScreen with the search results
                                         navigation.navigate("SearchResult", { results: data.items });
