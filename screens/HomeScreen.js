@@ -30,6 +30,18 @@ const HomeScreen = () => {
         return () => unsubscribe(); // cleanup subscription on unmount
     }, []);
 
+
+    // dismiss keyboard when screen the user navigates away from HomeScreen
+    // to avoid the keyboard blocking the TabNavigator when the user returns
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                Keyboard.dismiss();
+            };
+        }, [])
+    );
+
+
     // load the recent searches for the current user when the screen is focused
     useFocusEffect(
         useCallback(() => {
