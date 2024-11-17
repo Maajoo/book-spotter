@@ -1,19 +1,25 @@
-import { ActivityIndicator, Button, FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { fetchBooks } from '../components/fetchBooks';
 import { toggleFavorite } from '../components/toggleFavourite';
 import { sendBookRecommendation } from '../components/sendEmail';
+import { useTheme } from '../ThemeContext';
+import Ionicons from '@expo/vector-icons/Ionicons'
+import { toggleRead } from '../components/toggleRead';
 
 const FavouriteScreen = () => {
+
   const [user, setUser] = useState(null);
   const [favourites, setFavourites] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
+  const { isDarkTheme } = useTheme();
+  const [isRead, setIsRead] = useState({});
 
 
   useEffect(() => {
@@ -50,7 +56,33 @@ const FavouriteScreen = () => {
     return () => unsubscribeAuth();
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      checkReadStatus();
+    }
+  }, [user, favourites]);
 
+  const checkReadStatus = async () => {
+    const status = {};
+    for (const book of favourites) {
+      const docRef = doc(db, "markedasread", `${user.uid}_${book.bookId}`);
+      const docSnapshot = await getDoc(docRef);
+      status[book.bookId] = docSnapshot.exists();
+    }
+    setIsRead(status);
+  };
+
+  const handleToggleRead = async (bookId, bookTitle) => {
+    try {
+      const updatedReadStatus = await toggleRead(db, user, bookId, bookTitle);
+      setIsRead((prevStatus) => ({
+        ...prevStatus,
+        [bookId]: updatedReadStatus,
+      }));
+    } catch (error) {
+      console.error("Error toggling read status:", error);
+    }
+  };
 
   // function to handle email sending
   const handleSendEmail = async (book) => {
@@ -87,26 +119,77 @@ const FavouriteScreen = () => {
 
   //function to render the favourite id
   const renderFavoriteItem = ({ item }) => (
-    <TouchableOpacity style={styles.favouriteItem}
-      onPress={() => navigateToBookDetails(item.bookId)}
-    >
-      <Image
-        style={styles.thumbnail}
-        source={{
-          uri: `https://books.google.com/books/content?id=${item.bookId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`,
-        }}
-      />
-      <Text>{item.bookTitle}</Text>
-      <Text>{item.bookId}</Text>
-      <Button
-        title="Remove from Favorites"
-        onPress={() => handleToggleFavorite(item.bookId, item.bookTitle)}
-      />
-      <Button
-        title="Recommend this Book"
-        onPress={() => handleSendEmail(item)}
-      />
-    </TouchableOpacity>
+    // conditional render width to avoid render breaking when there is only one favourite
+    <View style={[favourites.length === 1 ? { width: '100%' } : { width: '50%' }]}>
+      <View style={styles.favouriteItem}>
+        <TouchableOpacity
+          style={{ alignItems: 'center', marginBottom: 10 }}
+          onPress={() => navigateToBookDetails(item.bookId)}
+        >
+          <Image
+            style={styles.thumbnail}
+            source={{
+              uri: `https://books.google.com/books/content?id=${item.bookId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`,
+            }}
+          />
+          <Text style={styles.bookTitle}>{item.bookTitle}</Text>
+        </TouchableOpacity>
+
+        {/* BUTTONS */}
+        <View style={styles.buttonContainer}>
+
+          {/* READ */}
+          <TouchableOpacity
+            style={{ margin: 3 }}
+            onPress={() => handleToggleRead(item.bookId, item.bookTitle)}
+          >
+            {isRead[item.bookId] ? <Ionicons name='book' size={40} color='#9a8d98' /> : <Ionicons name='book-outline' size={40} color='#9a8d98' />}
+          </TouchableOpacity>
+
+          {/* DELETE FROM FAVOURITES */}
+          <TouchableOpacity
+            style={{ margin: 3 }}
+            onPress={async () => {
+              Alert.alert(
+                "Remove from Favourites",
+                "Are you sure you want to remove this book from your favourites?",
+                [
+                  {
+                    text: "Cancel",
+                    style: "cancel",
+                  },
+                  {
+                    text: "OK",
+                    onPress: async () => {
+                      setLoading(true);
+                      try {
+                        await handleToggleFavorite(item.bookId, item.bookTitle);
+                      } catch (error) {
+                        console.error("Error removing from favourites:", error);
+                      }
+                      finally {
+                        setLoading(false);
+                      }
+                    },
+                  },
+                ]
+              );
+            }}
+          >
+            <Ionicons name='heart-dislike-outline' size={40} color='#9a8d98' />
+          </TouchableOpacity>
+
+          {/* RECOMMEND / EMAIL */}
+          <TouchableOpacity
+            style={{ margin: 3 }}
+            onPress={() => handleSendEmail(item)}
+          >
+            <Ionicons name='mail-outline' size={40} color='#9a8d98' />
+          </TouchableOpacity>
+        </View>
+
+      </View>
+    </View>
   );
 
   const navigateToBookDetails = async (bookId) => {
@@ -128,17 +211,25 @@ const FavouriteScreen = () => {
   };
 
   return (
-    <View style={styles.favouritesContainer}>
-      <Text style={styles.title}>Favourite Books</Text>
+    <View style={isDarkTheme ? styles.darkContainer : styles.container}>
+      <View style={styles.titleContainer}>
+        <Text style={isDarkTheme ? styles.darkTitle : styles.title}>Favourite Books</Text>
+      </View>
 
       {/* if loading == true display ActivityIndicator else if favourites length > 0
       if true render favourites else render "No favourites found." */}
 
       {loading ? (
-        <ActivityIndicator />
+        <ActivityIndicator
+          size='large'
+          animating={loading}
+          color={isDarkTheme ? '#4a4e68' : '#c9ada6'}
+          style={{ marginTop: 10 }}
+        />
       ) : (
         favourites.length ? (
           <FlatList
+            style={{ borderTopWidth: 1, padding: 10, borderColor: '#9a8d98', alignSelf: 'center' }}
             data={favourites}
             renderItem={renderFavoriteItem}
             keyExtractor={(item, index) => item.bookId + index.toString()}
@@ -146,7 +237,7 @@ const FavouriteScreen = () => {
             columnWrapperStyle={styles.row}
           />
         ) : (
-          <Text>No favourites found.</Text>
+          <Text style={isDarkTheme ? styles.darkNoFavourites : styles.noFavourites}>No favourites found.</Text>
         )
       )}
 
@@ -159,30 +250,96 @@ export default FavouriteScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: 100,
-    paddingHorizontal: 20,
+    paddingTop: 60,
+    backgroundColor: '#f2e8e3',
+    justifyContent: 'center',
   },
-  favouritesContainer: {
-    marginTop: 100,
-    marginBottom: 100,
+  darkContainer: {
+    flex: 1,
+    paddingTop: 60,
+    backgroundColor: '#22223a',
+    justifyContent: 'center',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 20,
   },
+  darkTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    width: '100%',
+    width: 250,
+    padding: 10,
+    alignSelf: 'center',
+  },
   favouriteItem: {
     flex: 1,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginHorizontal: 5,
+    alignSelf: 'center',
+    margin: 10,
     padding: 10,
+    borderWidth: 1,
+    borderRadius: 10,
+    borderColor: '#9a8d98',
+    width: 170,
   },
   thumbnail: {
+    borderWidth: 1,
+    borderColor: '#9a8d98',
+    borderRadius: 10,
     width: 100,
     height: 150,
   },
   row: {
     justifyContent: 'space-between',
-    marginBottom: 20,
+  },
+  title: {
+    color: '#9a8d98',
+    fontSize: 30,
+    fontWeight: '700',
+  },
+  darkTitle: {
+    color: '#9a8d98',
+    fontSize: 30,
+    fontWeight: '700',
+  },
+  bookTitle: {
+    paddingTop: 10,
+    textAlign: 'center',
+    color: '#9a8d98',
+    fontSize: 20,
+    fontWeight: '700',
+    flexWrap: 'wrap',
+    width: 160
+  },
+  darkBookTitle: {
+    color: '#9a8d98',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  noFavourites: {
+    textAlign: 'center',
+    color: '#c9ada6',
+    fontSize: 20,
+    fontStyle: 'italic',
+    fontWeight: '500',
+  },
+  darkNoFavourites: {
+    textAlign: 'center',
+    color: '#4a4e68',
+    fontSize: 20,
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
 });

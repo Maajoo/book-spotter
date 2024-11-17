@@ -184,7 +184,6 @@ const HomeScreen = () => {
                                         [
                                             {
                                                 text: "Cancel",
-                                                onPress: () => console.log("Cancel Pressed"),
                                                 style: "cancel"
                                             },
                                             {
