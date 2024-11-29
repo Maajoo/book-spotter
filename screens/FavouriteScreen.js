@@ -11,6 +11,7 @@ import { sendBookRecommendation } from '../components/sendEmail';
 import { useTheme } from '../ThemeContext';
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { toggleRead } from '../components/toggleRead';
+import Toast from 'react-native-root-toast';
 
 const FavouriteScreen = () => {
 
@@ -43,8 +44,24 @@ const FavouriteScreen = () => {
           setLoading(false);
         });
 
+        // listener for the read status
+        const readCollectionRef = collection(db, "markedasread");
+        const readQuery = query(readCollectionRef, where("uid", "==", currentUser.uid));
+        const unsubscribeReadSnapshot = onSnapshot(readQuery, (querySnapshot) => {
+          const readStatus = {};
+          querySnapshot.docs.forEach((doc) => {
+            readStatus[doc.data().bookId] = true;
+          });
+          setIsRead(readStatus);
+        }, (error) => {
+          console.error("Error fetching read status: ", error);
+        });
+
         // empty listener
-        return () => unsubscribeSnapshot();
+        return () => {
+          unsubscribeSnapshot();
+          unsubscribeReadSnapshot();
+        };
       } else {
         setUser(null);
         setFavourites([]);
@@ -79,6 +96,17 @@ const FavouriteScreen = () => {
         ...prevStatus,
         [bookId]: updatedReadStatus,
       }));
+      if (updatedReadStatus) {
+        Toast.show('Added to Finished Books', {
+          duration: Toast.durations.SHORT,
+          position: Toast.positions.BOTTOM,
+        });
+      } else {
+        Toast.show('Removed from Finished Books', {
+          duration: Toast.durations.SHORT,
+          position: Toast.positions.BOTTOM,
+        });
+      }
     } catch (error) {
       console.error("Error toggling read status:", error);
     }
@@ -121,8 +149,11 @@ const FavouriteScreen = () => {
   const renderFavoriteItem = ({ item }) => (
     // conditional render width to avoid render breaking when there is only one favourite
     <View style={[favourites.length === 1 ? { width: '100%' } : { width: '50%' }]}>
-      <View style={styles.favouriteItem}>
-        <TouchableOpacity
+      <TouchableOpacity
+      style={styles.favouriteItem}
+      onPress={() => navigateToBookDetails(item.bookId)}
+      >
+        <View
           style={{ alignItems: 'center', marginBottom: 10 }}
           onPress={() => navigateToBookDetails(item.bookId)}
         >
@@ -133,7 +164,7 @@ const FavouriteScreen = () => {
             }}
           />
           <Text style={styles.bookTitle}>{item.bookTitle}</Text>
-        </TouchableOpacity>
+        </View>
 
         {/* BUTTONS */}
         <View style={styles.buttonContainer}>
@@ -141,7 +172,15 @@ const FavouriteScreen = () => {
           {/* READ */}
           <TouchableOpacity
             style={{ margin: 3 }}
-            onPress={() => handleToggleRead(item.bookId, item.bookTitle)}
+
+            // conditional alert message for adding books to Finished Books list
+            onPress={async () => {
+              try {
+                await handleToggleRead(item.bookId, item.bookTitle);
+              } catch (error) {
+                console.error("Error toggling Finished Books status:", error);
+              }
+            }}
           >
             {isRead[item.bookId] ? <Ionicons name='book' size={40} color='#9a8d98' /> : <Ionicons name='book-outline' size={40} color='#9a8d98' />}
           </TouchableOpacity>
@@ -176,7 +215,7 @@ const FavouriteScreen = () => {
               );
             }}
           >
-            <Ionicons name='heart-dislike-outline' size={40} color='#9a8d98' />
+            <Ionicons name='heart' size={40} color='#9a8d98' />
           </TouchableOpacity>
 
           {/* RECOMMEND / EMAIL */}
@@ -188,23 +227,23 @@ const FavouriteScreen = () => {
           </TouchableOpacity>
         </View>
 
-      </View>
+      </TouchableOpacity>
     </View>
   );
 
   const navigateToBookDetails = async (bookId) => {
     try {
-      // Call fetchBooks with bookId to fetch detailed information
+      // call fetchBooks with bookId to fetch detailed information
       const bookData = await fetchBooks(null, bookId);
 
-      // Structure item to include volumeInfo and saleInfo
-      navigation.navigate("BookDetails", {
-        item: {
-          id: bookId,
-          volumeInfo: bookData.volumeInfo || {},
-          saleInfo: bookData.saleInfo || {},
-        },
-      });
+      // structure item to include volumeInfo and saleInfo
+      const item = {
+        id: bookId,
+        volumeInfo: bookData.volumeInfo || {},
+        saleInfo: bookData.saleInfo || {},
+      };
+
+      navigation.navigate("BookDetails", { item });
     } catch (error) {
       console.error("Error fetching book details: ", error);
     }
@@ -215,9 +254,6 @@ const FavouriteScreen = () => {
       <View style={styles.titleContainer}>
         <Text style={isDarkTheme ? styles.darkTitle : styles.title}>Favourite Books</Text>
       </View>
-
-      {/* if loading == true display ActivityIndicator else if favourites length > 0
-      if true render favourites else render "No favourites found." */}
 
       {loading ? (
         <ActivityIndicator
@@ -237,7 +273,7 @@ const FavouriteScreen = () => {
             columnWrapperStyle={styles.row}
           />
         ) : (
-          <Text style={isDarkTheme ? styles.darkNoFavourites : styles.noFavourites}>No favourites found.</Text>
+          <Text style={isDarkTheme ? styles.darkNoFavourites : styles.noFavourites}>No favourites</Text>
         )
       )}
 
@@ -263,16 +299,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  darkTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
   },
   titleContainer: {
     alignItems: 'center',
