@@ -1,6 +1,7 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { fetchBooks } from './fetchBooks';
 
-export const renderBooks = ({ item, navigation }) => {
+export const renderBooks = ({ item, navigation, isDarkTheme }) => {
 
   // make optional renders in cases where data is not available
   const description = item.volumeInfo?.description || "No description available."; // if description not available render "No description available."
@@ -14,9 +15,27 @@ export const renderBooks = ({ item, navigation }) => {
     shortDescription = shortDescription.substring(0, 180) + '...';
   }
 
+  const handlePress = async () => {
+    try {
+      // fetch detailed information using the selfLink
+      const detailedData = await fetchBooks(null, item.id);
+      const detailedItem = {
+        id: item.id,
+        volumeInfo: detailedData.volumeInfo || {},
+        saleInfo: detailedData.saleInfo || {},
+      };
+
+      // Navigate to BookDetailsScreen with the detailed information
+      navigation.navigate("BookDetails", { item: detailedItem });
+    } catch (error) {
+      console.error("Error fetching detailed book information:", error);
+    }
+  };
+
   return (
     <TouchableOpacity
-      onPress={() => navigation.navigate("BookDetails", { item })}
+      onPress={handlePress}
+      style={{ flex: 1, width: '95%', alignSelf: 'center' }}
     >
       <View style={styles.itemContainer}>
         {/* book cover picture */}
@@ -27,20 +46,11 @@ export const renderBooks = ({ item, navigation }) => {
           }}
         />
         <View style={styles.textContainer}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={isDarkTheme ? styles.darkTitle : styles.title}>{title}</Text>
           {/* authors and published date */}
-          <Text style={styles.authors}>{authors} · {publishedDate.substring(0, 4)}</Text>
+          <Text style={isDarkTheme ? styles.darkAuthors : styles.authors}>{authors} · {publishedDate.substring(0, 4)}</Text>
           {/* render the shortened description */}
-          <Text style={styles.description}>{shortDescription}</Text>
-
-
-
-
-          {/* FOR DEV PURPOSES REMEMBER TO DELETE IN FINAL PRODUCT */}
-          <Text style={styles.description}>{item.id}</Text>
-          {/* FOR DEV PURPOSES REMEMBER TO DELETE IN FINAL PRODUCT */}
-
-
+          <Text style={isDarkTheme ? styles.darkDescription : styles.description}>{shortDescription}</Text>
 
         </View>
       </View>
@@ -53,34 +63,65 @@ const styles = StyleSheet.create({
     width: '75%'
   },
   thumbnail: {
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#9a8d98',
+    borderRadius: 5,
     width: 100,
     height: 150,
   },
   itemContainer: {
     display: "flex",
     alignItems: "center",
-    marginBottom: 15,
+    marginTop: 15,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#9a8d98',
     borderRadius: 5,
     flexDirection: "row",
   },
   title: {
+    color: '#4a4e68',
+    width: '90%',
     fontSize: 15,
-    fontWeight: 'bold',
-    marginLeft: 10,
-    marginRight: 10,
+    fontWeight: "800",
+  },
+  darkTitle: {
+    color: '#9a8d98',
+    width: '90%',
+    fontSize: 15,
+    fontWeight: "800",
   },
   authors: {
-    fontSize: 14,
-    marginLeft: 10,
-    marginRight: 10,
+    color: '#4a4e68',
+    fontWeight: "500",
+    fontStyle: "italic",
+    width: '90%',
     marginBottom: 10,
+    fontSize: 14,
+  },
+  darkAuthors: {
+    color: '#9a8d98',
+    fontWeight: "500",
+    fontStyle: "italic",
+    width: '90%',
+    marginBottom: 10,
+    fontSize: 14,
   },
   description: {
+    color: '#9a8d98',
+    flex: 1,
+    fontWeight: "300",
+    width: '90%',
     fontStyle: "italic",
     fontSize: 14,
-    margin: 10,
-  }
+  },
+  darkDescription: {
+    color: '#4a4e68',
+    flex: 1,
+    fontWeight: "300",
+    width: '90%',
+    fontStyle: "italic",
+    fontSize: 14,
+  },
 });
