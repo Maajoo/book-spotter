@@ -1,4 +1,4 @@
-import { ActivityIndicator, Button, FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -7,13 +7,17 @@ import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { fetchBooks } from '../components/fetchBooks';
 import { toggleRead } from '../components/toggleRead';
-import { sendBookRecommendation } from '../components/sendEmail';
+import { useTheme } from '../ThemeContext';
+import Ionicons from '@expo/vector-icons/Ionicons'
+
 
 const ReadScreen = () => {
   const [user, setUser] = useState(null);
   const [markedAsRead, setMarkedAsRead] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
+  const { isDarkTheme } = useTheme();
+
 
 
   useEffect(() => {
@@ -51,31 +55,6 @@ const ReadScreen = () => {
   }, []);
 
 
-
-  // function to handle email sending
-  const handleSendEmail = async (book) => {
-    let bookDetails = {
-      title: book.bookTitle,
-      authors: book.authors,
-      description: book.description,
-    };
-
-    // fetch missing details to form the email
-    if (!bookDetails.authors || !bookDetails.description) {
-      try {
-        const bookData = await fetchBooks(null, book.bookId);
-        bookDetails.authors = bookData.volumeInfo.authors.join(", ") || "Unknown Author";
-        bookDetails.description = bookData.volumeInfo.description || "No description available.";
-      } catch (error) {
-        console.error("Error fetching additional book details:", error);
-        return;
-      }
-    }
-
-    sendBookRecommendation(bookDetails);
-  };
-
-
   const handleToggleRead = async (bookId, bookTitle) => {
     try {
       const updatedReadStatus = await toggleRead(db, user, bookId, bookTitle);
@@ -84,29 +63,60 @@ const ReadScreen = () => {
     }
   };
 
-
   //function to render the read id
   const renderReadItem = ({ item }) => (
-    <TouchableOpacity style={styles.readItem}
-      onPress={() => navigateToBookDetails(item.bookId)}
-    >
-      <Image
-        style={styles.thumbnail}
-        source={{
-          uri: `https://books.google.com/books/content?id=${item.bookId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`,
-        }}
-      />
-      <Text>{item.bookTitle}</Text>
-      <Text>{item.bookId}</Text>
-      <Button
-        title="Remove from Read list"
-        onPress={() => handleToggleRead(item.bookId, item.bookTitle)}
-      />
-      <Button
-        title="Recommend this Book"
-        onPress={() => handleSendEmail(item)}
-      />
-    </TouchableOpacity>
+    <View style={styles.itemContainer}>
+      <TouchableOpacity
+        style={styles.readItem}
+        onPress={() => navigateToBookDetails(item.bookId)}
+      >
+        <Image
+          style={styles.thumbnail}
+          source={{
+            uri: `https://books.google.com/books/content?id=${item.bookId}&printsec=frontcover&img=1&zoom=1&source=gbs_api`,
+          }}
+        />
+
+        <View style={styles.bookTitleContainer}>
+          <Text style={styles.bookTitle}>{item.bookTitle}</Text>
+        </View>
+
+      </TouchableOpacity>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={{ margin: 3 }}
+          onPress={async () => {
+            Alert.alert(
+              "Remove from Finished Books",
+              "Remove this book from Finished Books?",
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    setLoading(true);
+                    try {
+                      await handleToggleRead(item.bookId, item.bookTitle);
+                    } catch (error) {
+                      console.error("Error removing Finished Books:", error);
+                    } finally {
+                      setLoading(false);
+                    }
+                  },
+                },
+              ]
+            );
+          }}
+        >
+          <Ionicons name='book' size={40} color='#9a8d98' />
+        </TouchableOpacity>
+      </View>
+
+    </View>
   );
 
   const navigateToBookDetails = async (bookId) => {
@@ -128,29 +138,55 @@ const ReadScreen = () => {
   };
 
   return (
-    <View style={styles.readListContainer}>
-      <Text style={styles.title}>Read Books</Text>
+    <View style={isDarkTheme ? styles.darkContainer : styles.container}>
 
-      {/* if loading == true display ActivityIndicator else if markedasread length > 0
-      if true render markedasread else render "No read books found." */}
+      <View style={styles.headerContainer}>
 
-      {loading ? (
-        <ActivityIndicator />
-      ) : (
-        markedAsRead.length ? (
-          <FlatList
-            data={markedAsRead}
-            renderItem={renderReadItem}
-            keyExtractor={(item, index) => item.bookId + index.toString()}
-            numColumns={2}
-            columnWrapperStyle={styles.row}
-          />
+        <View style={{ flex: 1 }} >
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Profile")}
+            style={styles.backButton}
+          >
+            <Ionicons name={'caret-back-circle-outline'} size={30} color="#9a8d98" />
+          </TouchableOpacity>
+        </View>
+
+
+        <View style={styles.titleContainer}>
+          <Text style={isDarkTheme ? styles.darkTitle : styles.title}>Finished Books</Text>
+        </View>
+
+        <View style={{ flex: 1 }}></View>
+
+      </View>
+
+
+      {/* if loading == true:
+            display ActivityIndicator.
+          Else if
+            markedasread length > 0:
+              if true:
+                render markedasread
+              else:
+                render "No read books found." */}
+      <View style={styles.contentContainer}>
+        {loading ? (
+          <ActivityIndicator />
         ) : (
-          <Text>No read books found.</Text>
-        )
-      )}
-
-    </View>
+          markedAsRead.length ? (
+            <FlatList
+              data={markedAsRead}
+              renderItem={renderReadItem}
+              keyExtractor={(item, index) => item.bookId + index.toString()}
+              style={{ width: '100%', borderTopWidth: 1, borderColor: '#9a8d98', paddingTop: 30 }}
+              ListFooterComponent={<View style={{ height: 50 }} />}
+            />
+          ) : (
+            <Text style={isDarkTheme ? styles.darkNoFinishedBooks : styles.noFinishedBooks}>No finished books</Text>
+          )
+        )}
+      </View>
+    </View >
   );
 };
 
@@ -159,30 +195,110 @@ export default ReadScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: 100,
-    paddingHorizontal: 20,
+    paddingTop: 60,
+    backgroundColor: '#f2e8e3',
+    justifyContent: 'center',
   },
-  readListContainer: {
-    marginTop: 100,
-    marginBottom: 100,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  readItem: {
+  darkContainer: {
     flex: 1,
+    paddingTop: 60,
+    backgroundColor: '#22223a',
+    justifyContent: 'center',
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 5,
+  },
+  titleContainer: {
+    justifyContent: 'center',
+    flex: 3,
+    alignItems: 'center',
+    width: '100%',
+    width: 250,
     padding: 10,
   },
-  thumbnail: {
-    width: 100,
-    height: 150,
+  itemContainer: {
+    marginLeft: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '90%',
+    alignSelf: 'center',
+    marginBottom: 10,
   },
-  row: {
-    justifyContent: 'space-between',
+  bookTitleContainer: {
+    width: '75%',
+    marginLeft: 10,
+  },
+  bookTitle: {
+    color: '#9a8d98',
+    fontSize: 20,
+    fontWeight: '700',
+    width: 160
+  },
+  buttonContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    width: '50%',
+    marginLeft: 10,
+  },
+  title: {
+    color: '#9a8d98',
+    fontSize: 30,
+    fontWeight: '700',
+  },
+  darkTitle: {
+    color: '#9a8d98',
+    fontSize: 30,
+    fontWeight: '700',
+  },
+  readItem: {
+    flex: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#9a8d98',
+    borderRadius: 10,
+  },
+  thumbnail: {
+    width: 50,
+    height: 80,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#9a8d98',
+  },
+  backButton: {
+    alignItems: 'center',
+    borderWidth: 1,
+    height: 50,
+    width: 50,
+    borderColor: '#9a8d98',
+    borderRadius: 10,
+    marginRight: 5,
+    marginLeft: 10,
+    justifyContent: 'center',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  noFinishedBooks: {
+    marginBottom: 300,
+    textAlign: 'center',
+    color: '#c9ada6',
+    fontSize: 20,
+    fontStyle: 'italic',
+    fontWeight: '500',
+  },
+  darkNoFinishedBooks: {
+    marginBottom: 300,
+    textAlign: 'center',
+    color: '#4a4e68',
+    fontSize: 20,
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
 });
