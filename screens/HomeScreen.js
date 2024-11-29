@@ -1,4 +1,4 @@
-import { ActivityIndicator, TouchableOpacity, StatusBar, StyleSheet, Text, TextInput, View, FlatList, Keyboard, TouchableWithoutFeedback, Image, Alert } from 'react-native'
+import { ActivityIndicator, TouchableOpacity, StyleSheet, Text, TextInput, View, FlatList, Keyboard, TouchableWithoutFeedback, Image, Alert } from 'react-native'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { fetchBooks } from '../components/fetchBooks'
@@ -222,7 +222,7 @@ const HomeScreen = () => {
                                         ]
                                     );
                                 }}
-                                style={{ borderWidth: 1, borderRadius: 10, borderColor: '#9a8d98', padding: 5 }}
+                                style={{ borderWidth: 1, borderRadius: 10, borderColor: isDarkTheme ? '#4a4e68' : '#c9ada6', padding: 5 }}
                             >
                                 <Text
                                     style={isDarkTheme ? styles.darkClearHistory : styles.clearHistory}
@@ -400,14 +400,14 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     clearHistory: {
-        color: '#9a8d98',
+        color: '#c9ada6',
         fontSize: 15,
         textAlign: 'center',
         fontStyle: 'italic',
         fontWeight: '500',
     },
     darkClearHistory: {
-        color: '#9a8d98',
+        color: '#4a4e68',
         fontSize: 15,
         textAlign: 'center',
         fontStyle: 'italic',
